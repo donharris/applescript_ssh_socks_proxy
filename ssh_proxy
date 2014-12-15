@@ -1,0 +1,50 @@
+(* This is a small applescript to control an ssh / socks proxy to avoid firewalls that are filtering traffic. 
+	This script assumes that you have a user that can use ssh key authentication (without passworrd) to the remote server *)
+
+global SERVER_NAME, SSH_KEY_FILE
+set SERVER_NAME to "$SERVER_IP/HOSTNAME_TO_SSH_TO"
+set SSH_KEY_FILE to "~/.ssh/$KEY_FILE"
+
+(* Display a small dialog box to start / stop the tunnel *)
+if button returned of (display dialog "Start or Stop tunnel?" buttons {"Start", "Stop"} default button 1 with title "Internet Tunnel") is "Start" then
+	my start_tunnel()
+else
+	my stop_tunnel()
+end if
+
+(* Function to start the tunnel to the remote server *)
+on start_tunnel()
+	(* enable the socks proxy and set it to localhost:1080 *)
+	do shell script "networksetup -setsocksfirewallproxy Wi-Fi 127.0.0.1 1080"
+	tell application "Terminal"
+		reopen
+		activate
+		
+		(* Actually make the ssh conneciton / tunnel *)
+		set currentTab to do script "/usr/bin/ssh -i " & SSH_KEY_FILE & " -D1080 -oControlMaster=no $USERNAME@" & SERVER_NAME & " 2>&1" in window 1
+		
+		(* I was trying to get OS X to then hide the terminal window as we don't need to see it, but it's not working *)
+		tell application "System Events" to tell process "Terminal" to keystroke "h" using command down
+	end tell
+end start_tunnel
+
+(* Function to stop the tunnel / and remove the socks proxy setting *)
+on stop_tunnel()
+	tell application "Terminal"
+		--reopen
+		activate
+		(* Disconnect from the SSH connection *)
+		tell application "System Events" to tell process "Terminal" to keystroke "d" using control down
+		delay 2
+		
+		(* Turn off the socks proxy setting *)
+		set currentTab to do script "networksetup -setsocksfirewallproxystate Wi-Fi off" in window 1
+		
+		(* Ensure the ssh connection on port 1080 is terminated *)
+		set currentTab to do script "pkill -f D1080" in window 1
+		delay 2
+		
+		(* Quit Terminal as we no longer need it *)
+		tell application "System Events" to tell process "Terminal" to keystroke "q" using command down
+	end tell
+end stop_tunnel
