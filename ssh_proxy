@@ -1,5 +1,5 @@
 (* This is a small applescript to control an ssh / socks proxy to avoid firewalls that are filtering traffic. 
-	This script assumes that you have a user that can use ssh key authentication (without passworrd) to the remote server *)
+	This script assumes that you have a user that can use ssh key authentication (without password) to the remote server *)
 
 global SERVER_NAME, SSH_KEY_FILE
 set SERVER_NAME to "$SERVER_IP/HOSTNAME_TO_SSH_TO"
